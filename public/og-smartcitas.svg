@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">EsSalud SmartCitas</title>
+  <desc id="desc">Gestion de citas medicas y listas de espera</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#047f8d"/>
+      <stop offset="0.55" stop-color="#0f9fb3"/>
+      <stop offset="1" stop-color="#58c2bd"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#f4fbfc"/>
+  <circle cx="1030" cy="110" r="220" fill="#d9f4f4"/>
+  <circle cx="110" cy="590" r="230" fill="#e6f7f7"/>
+  <rect x="88" y="78" width="1024" height="474" rx="44" fill="url(#g)"/>
+  <g transform="translate(150 160)" fill="#fff">
+    <rect x="0" y="54" width="116" height="34" rx="10"/>
+    <rect x="41" y="13" width="34" height="116" rx="10"/>
+  </g>
+  <text x="320" y="238" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700" fill="#fff">EsSalud SmartCitas</text>
+  <text x="320" y="318" font-family="Arial, Helvetica, sans-serif" font-size="35" fill="#eaffff">Gestion de citas y prioridad de atencion</text>
+  <text x="320" y="378" font-family="Arial, Helvetica, sans-serif" font-size="29" fill="#dff8f8">React - Supabase Auth - Supabase Database</text>
+  <rect x="320" y="426" width="420" height="66" rx="33" fill="#fff" fill-opacity=".16"/>
+  <text x="365" y="469" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#fff">Sistema de gestion medica</text>
+</svg>

@@ -1,0 +1,13 @@
+node_modules
+.output
+.tanstack
+.git
+.github
+api/target
+target
+*.log
+.env
+.env.*
+!.env.example
+README.md
+docs

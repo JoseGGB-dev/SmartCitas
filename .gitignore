@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+node_modules/
+dist
+dist/
+dist-ssr
+build/
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Cobertura y cache
+coverage/
+.cache/
+.vite/
+.eslintcache
+
+# Supabase local
+supabase/.temp/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo

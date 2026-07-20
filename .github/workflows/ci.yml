@@ -1,0 +1,59 @@
+name: Calidad y compilacion
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Revisar TypeScript
+        run: npm run typecheck
+
+      - name: Ejecutar pruebas frontend
+        run: npm test
+
+      - name: Revisar codigo
+        run: npm run lint
+
+      - name: Compilar aplicacion
+        run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Ejecutar pruebas backend
+        working-directory: api
+        run: mvn test
+
+      - name: Verificar backend
+        working-directory: api
+        run: mvn verify
