@@ -199,7 +199,13 @@ export async function getPatientRequests(): Promise<PageResponse<AppointmentRequ
 export async function createPatientRequest(
   body: AppointmentRequestCreate,
 ): Promise<AppointmentRequest> {
-  const patient = await getOrCreatePatient(body);
+  const patient = await getOrCreatePatient();
+  if (!patient.birth_date || !patient.disease?.trim()) {
+    throw new Error(
+      "Antes de solicitar una cita, completa tus datos medicos en la seccion Mi perfil.",
+    );
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("appointment_requests")

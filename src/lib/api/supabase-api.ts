@@ -236,12 +236,7 @@ export async function requireRole(roles: RoleCode[]) {
   }
 }
 
-export async function getOrCreatePatient(body?: {
-  birthDate?: string;
-  disease?: string;
-  chronicCondition?: boolean;
-  vulnerabilityCondition?: boolean;
-}) {
+export async function getOrCreatePatient() {
   const user = await currentAuthUser();
   const { data: existing, error: existingError } = await supabase
     .from("patients")
@@ -249,37 +244,16 @@ export async function getOrCreatePatient(body?: {
     .eq("profile_id", user.id)
     .maybeSingle();
   if (existingError) throw existingError;
-  if (existing) {
-    const updates: Record<string, unknown> = {};
-    if (body?.birthDate) updates.birth_date = body.birthDate;
-    if (body?.disease !== undefined) updates.disease = body.disease.trim() || null;
-    if (body?.chronicCondition !== undefined) updates.chronic_condition = body.chronicCondition;
-    if (body?.vulnerabilityCondition !== undefined) {
-      updates.vulnerability_condition = body.vulnerabilityCondition;
-    }
-
-    if (Object.keys(updates).length) {
-      const { data, error } = await supabase
-        .from("patients")
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", existing.id)
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data as PatientRow;
-    }
-
-    return existing as PatientRow;
-  }
+  if (existing) return existing as PatientRow;
 
   const { data, error } = await supabase
     .from("patients")
     .insert({
       profile_id: user.id,
-      birth_date: body?.birthDate ?? null,
-      disease: body?.disease?.trim() || null,
-      chronic_condition: body?.chronicCondition ?? false,
-      vulnerability_condition: body?.vulnerabilityCondition ?? false,
+      birth_date: null,
+      disease: null,
+      chronic_condition: false,
+      vulnerability_condition: false,
     })
     .select("*")
     .single();

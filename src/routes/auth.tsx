@@ -43,14 +43,10 @@ function AuthPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
-  const [birthDate, setBirthDate] = useState("");
   const [sex, setSex] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [district, setDistrict] = useState("");
-  const [disease, setDisease] = useState("");
-  const [chronicCondition, setChronicCondition] = useState(false);
-  const [vulnerabilityCondition, setVulnerabilityCondition] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -106,14 +102,10 @@ function AuthPage() {
           last_name: lastName.trim(),
           document_type: "DNI",
           document_number: documentNumber.trim(),
-          birth_date: birthDate || null,
           sex: sex || null,
           phone: phone.trim(),
           address: address.trim() || null,
           district: district.trim() || null,
-          disease: disease.trim() || null,
-          chronic_condition: chronicCondition,
-          vulnerability_condition: vulnerabilityCondition,
         },
       },
     });
@@ -255,52 +247,25 @@ function AuthPage() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <TextField label="DNI" value={documentNumber} onChange={setDocumentNumber} />
-                    <TextField
-                      label="Fecha nacimiento"
-                      type="date"
-                      value={birthDate}
-                      onChange={setBirthDate}
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="sex">Sexo</Label>
-                      <select
-                        id="sex"
-                        required
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                        value={sex}
-                        onChange={(event) => setSex(event.target.value)}
-                      >
-                        <option value="">Seleccionar</option>
-                        <option value="F">Femenino</option>
-                        <option value="M">Masculino</option>
-                        <option value="O">Otro</option>
-                      </select>
-                    </div>
                     <TextField label="Telefono" value={phone} onChange={setPhone} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sex">Sexo</Label>
+                    <select
+                      id="sex"
+                      required
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      value={sex}
+                      onChange={(event) => setSex(event.target.value)}
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="F">Femenino</option>
+                      <option value="M">Masculino</option>
+                      <option value="O">Otro</option>
+                    </select>
                   </div>
                   <TextField label="Direccion" value={address} onChange={setAddress} />
                   <TextField label="Distrito" value={district} onChange={setDistrict} />
-                  <TextField label="Enfermedad principal" value={disease} onChange={setDisease} />
-                  <label className="flex items-start gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={chronicCondition}
-                      onChange={(event) => setChronicCondition(event.target.checked)}
-                    />
-                    <span>Condicion cronica</span>
-                  </label>
-                  <label className="flex items-start gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={vulnerabilityCondition}
-                      onChange={(event) => setVulnerabilityCondition(event.target.checked)}
-                    />
-                    <span>Condicion de vulnerabilidad</span>
-                  </label>
                   <EmailField email={email} setEmail={setEmail} id="signup-email" />
                   <PasswordField
                     password={password}

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stethoscope } from "lucide-react";
+import { Search, Stethoscope, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -11,7 +11,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFacilities, getSpecialties } from "@/lib/api/catalogs";
-import { getAdminDoctors, saveAdminDoctor, setDoctorActive } from "@/lib/api/admin";
+import {
+  deleteAdminDoctor,
+  getAdminDoctors,
+  saveAdminDoctor,
+  setDoctorActive,
+} from "@/lib/api/admin";
 import type { DoctorInput, DoctorSummary } from "@/lib/api/types";
 
 export const Route = createFileRoute("/_authenticated/admin/doctors")({
@@ -21,6 +26,10 @@ export const Route = createFileRoute("/_authenticated/admin/doctors")({
 function AdminDoctorsPage() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<DoctorSummary | null>(null);
+  const [search, setSearch] = useState("");
+  const [specialtyFilter, setSpecialtyFilter] = useState("ALL");
+  const [facilityFilter, setFacilityFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const doctors = useQuery({ queryKey: ["admin", "doctors"], queryFn: getAdminDoctors });
   const specialties = useQuery({ queryKey: ["catalog", "specialties"], queryFn: getSpecialties });
   const facilities = useQuery({ queryKey: ["catalog", "facilities"], queryFn: getFacilities });
@@ -43,6 +52,41 @@ function AdminDoctorsPage() {
     onError: () => toast.error("No pudimos actualizar el estado."),
   });
 
+  const remove = useMutation({
+    mutationFn: deleteAdminDoctor,
+    onSuccess: () => {
+      toast.success("Medico eliminado");
+      setSelected(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "doctors"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar el medico.");
+    },
+  });
+
+  const rows = useMemo(() => doctors.data?.content ?? [], [doctors.data]);
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = normalizeSearch(search);
+    return rows.filter((doctor) => {
+      const fullName = normalizeSearch(doctorName(doctor));
+      const specialtyNames = doctor.specialties.map((specialty) => specialty.name);
+      const matchesSearch = !normalizedSearch || fullName.includes(normalizedSearch);
+      const matchesSpecialty =
+        specialtyFilter === "ALL" || specialtyNames.includes(specialtyFilter);
+      const matchesFacility = facilityFilter === "ALL" || doctor.facility === facilityFilter;
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && doctor.active) ||
+        (statusFilter === "INACTIVE" && !doctor.active);
+      return matchesSearch && matchesSpecialty && matchesFacility && matchesStatus;
+    });
+  }, [facilityFilter, rows, search, specialtyFilter, statusFilter]);
+  const hasFilters =
+    Boolean(search.trim()) ||
+    specialtyFilter !== "ALL" ||
+    facilityFilter !== "ALL" ||
+    statusFilter !== "ALL";
+
   return (
     <AppShell
       title="Gestion de medicos"
@@ -52,6 +96,63 @@ function AdminDoctorsPage() {
         <Card className="overflow-hidden p-0">
           <div className="border-b p-5">
             <h2 className="font-bold">Medicos registrados</h2>
+            <div className="mt-5 grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar por nombre o apellido"
+                />
+              </div>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={specialtyFilter}
+                onChange={(event) => setSpecialtyFilter(event.target.value)}
+              >
+                <option value="ALL">Todas las especialidades</option>
+                {specialties.data?.map((specialty) => (
+                  <option key={specialty.id} value={specialty.name}>
+                    {specialty.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={facilityFilter}
+                onChange={(event) => setFacilityFilter(event.target.value)}
+              >
+                <option value="ALL">Todas las sedes</option>
+                {facilities.data?.map((facility) => (
+                  <option key={facility.id} value={facility.name}>
+                    {facility.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="ALL">Todos los estados</option>
+                <option value="ACTIVE">Activo</option>
+                <option value="INACTIVE">Inactivo</option>
+              </select>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!hasFilters}
+                onClick={() => {
+                  setSearch("");
+                  setSpecialtyFilter("ALL");
+                  setFacilityFilter("ALL");
+                  setStatusFilter("ALL");
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
           </div>
           {doctors.isError ? (
             <div className="p-5">
@@ -61,9 +162,9 @@ function AdminDoctorsPage() {
             <div className="p-5">
               <LoadingPanel />
             </div>
-          ) : doctors.data?.content.length ? (
+          ) : filteredRows.length ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] text-sm">
+              <table className="w-full min-w-[980px] text-sm">
                 <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3">Medico</th>
@@ -75,7 +176,7 @@ function AdminDoctorsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {doctors.data.content.map((doctor) => (
+                  {filteredRows.map((doctor) => (
                     <tr key={doctor.id} className="border-t">
                       <td className="px-4 py-3">
                         <p className="font-semibold">{doctorName(doctor)}</p>
@@ -103,9 +204,28 @@ function AdminDoctorsPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            disabled={toggle.isPending || remove.isPending}
                             onClick={() => toggle.mutate({ id: doctor.id, active: !doctor.active })}
                           >
                             {doctor.active ? "Desactivar" : "Activar"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={toggle.isPending || remove.isPending}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  "Seguro que deseas eliminar este medico del uso operativo? Su historial se conservara.",
+                                )
+                              ) {
+                                remove.mutate(doctor.id);
+                              }
+                            }}
+                            className="gap-2 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                            Eliminar
                           </Button>
                         </div>
                       </td>
@@ -116,7 +236,14 @@ function AdminDoctorsPage() {
             </div>
           ) : (
             <div className="p-5">
-              <EmptyPanel title="Sin medicos" body="Agrega medicos para asignar cupos y agenda." />
+              <EmptyPanel
+                title={hasFilters ? "No se encontraron resultados" : "Sin medicos"}
+                body={
+                  hasFilters
+                    ? "Ajusta la busqueda o limpia los filtros para ver mas registros."
+                    : "Agrega medicos para asignar cupos y agenda."
+                }
+              />
             </div>
           )}
         </Card>
@@ -295,4 +422,13 @@ function TextField({
 
 function doctorName(doctor: DoctorSummary) {
   return [doctor.firstName, doctor.lastName].filter(Boolean).join(" ") || "Sin nombre";
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
 }

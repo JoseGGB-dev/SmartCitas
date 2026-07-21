@@ -6,6 +6,7 @@ import { EmptyPanel, ErrorPanel, LoadingPanel } from "@/components/data-states";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getAuditLogs, getPriorityEvaluations } from "@/lib/api/auditor";
+import { auditActionLabel, auditEntityLabel } from "@/lib/audit-labels";
 
 export const Route = createFileRoute("/_authenticated/auditor/dashboard")({
   component: AuditorDashboard,
@@ -55,12 +56,14 @@ function AuditorDashboard() {
                 {audit.data.content.map((item) => (
                   <div key={item.id} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{item.action}</Badge>
+                      <Badge variant="outline">{auditActionLabel(item.action)}</Badge>
                       <span className="text-xs text-muted-foreground">
                         {formatDate(item.createdAt)}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm font-semibold">{item.entityType}</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {auditEntityLabel(item.entityType)}
+                    </p>
                     <p className="mt-1 text-xs text-muted-foreground">{item.actorEmail}</p>
                   </div>
                 ))}

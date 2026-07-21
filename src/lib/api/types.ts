@@ -150,10 +150,6 @@ export type AppointmentRequestCreate = {
   preferredDateFrom?: string;
   preferredDateTo?: string;
   preferredTimeRange?: string;
-  birthDate?: string;
-  disease?: string;
-  chronicCondition?: boolean;
-  vulnerabilityCondition?: boolean;
 };
 
 export type PriorityEvaluation = {
@@ -270,6 +266,7 @@ export type PatientPriorityRow = {
 
 export type AdminPriorityRow = PatientPriorityRow & {
   patientId: string;
+  specialty: string | null;
 };
 
 export type AdminPriorityInput = {

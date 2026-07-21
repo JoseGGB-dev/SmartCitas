@@ -13,6 +13,7 @@ import { EmptyPanel, ErrorPanel, LoadingPanel } from "@/components/data-states";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getAdminAuditLogs, getAdminUsers, getStatistics } from "@/lib/api/admin";
+import { auditActionLabel, auditEntityLabel } from "@/lib/audit-labels";
 
 export const Route = createFileRoute("/_authenticated/admin/dashboard")({
   component: AdminDashboard,
@@ -111,8 +112,10 @@ function AdminDashboard() {
               <div className="divide-y">
                 {audit.data.content.slice(0, 10).map((item) => (
                   <div key={item.id} className="p-4">
-                    <Badge variant="outline">{item.action}</Badge>
-                    <p className="mt-2 text-sm font-semibold">{item.entityType}</p>
+                    <Badge variant="outline">{auditActionLabel(item.action)}</Badge>
+                    <p className="mt-2 text-sm font-semibold">
+                      {auditEntityLabel(item.entityType)}
+                    </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {item.actorEmail} / {formatDate(item.createdAt)}
                     </p>

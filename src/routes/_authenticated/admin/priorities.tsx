@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, RefreshCcw, Save } from "lucide-react";
+import { ClipboardList, RefreshCcw, Save, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -24,6 +24,9 @@ export const Route = createFileRoute("/_authenticated/admin/priorities")({
 function AdminPrioritiesPage() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<AdminPriorityRow | null>(null);
+  const [search, setSearch] = useState("");
+  const [specialtyFilter, setSpecialtyFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
   const priorities = useQuery({
     queryKey: ["admin", "priorities"],
     queryFn: getAdminPriorityBoard,
@@ -51,7 +54,28 @@ function AdminPrioritiesPage() {
     onError: () => toast.error("No pudimos recalcular la prioridad."),
   });
 
-  const rows = priorities.data?.content ?? [];
+  const rows = useMemo(() => priorities.data?.content ?? [], [priorities.data]);
+  const specialtyOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows.map((row) => row.specialty).filter((value): value is string => Boolean(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b, "es")),
+    [rows],
+  );
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = normalizeSearch(search);
+    return rows.filter((row) => {
+      const patientName = normalizeSearch(row.patientName);
+      const matchesName = !normalizedSearch || patientName.includes(normalizedSearch);
+      const matchesSpecialty = specialtyFilter === "ALL" || row.specialty === specialtyFilter;
+      const matchesPriority = priorityFilter === "ALL" || row.priorityLevel === priorityFilter;
+      return matchesName && matchesSpecialty && matchesPriority;
+    });
+  }, [priorityFilter, rows, search, specialtyFilter]);
+  const hasFilters =
+    Boolean(search.trim()) || specialtyFilter !== "ALL" || priorityFilter !== "ALL";
 
   return (
     <AppShell
@@ -60,13 +84,60 @@ function AdminPrioritiesPage() {
     >
       <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <Card className="overflow-hidden p-0">
-          <div className="flex items-center gap-2 border-b p-5">
-            <ClipboardList className="size-5 text-primary" />
-            <div>
-              <h2 className="font-bold">Tabla de prioridades</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ordenada por puntaje, tiempo de registro y posicion actual.
-              </p>
+          <div className="border-b p-5">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="size-5 text-primary" />
+              <div>
+                <h2 className="font-bold">Tabla de prioridades</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ordenada por puntaje, tiempo de registro y posicion actual.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_auto]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar por nombre o apellido"
+                />
+              </div>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={specialtyFilter}
+                onChange={(event) => setSpecialtyFilter(event.target.value)}
+              >
+                <option value="ALL">Todas las especialidades</option>
+                {specialtyOptions.map((specialty) => (
+                  <option key={specialty} value={specialty}>
+                    {specialty}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value)}
+              >
+                <option value="ALL">Todas las prioridades</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!hasFilters}
+                onClick={() => {
+                  setSearch("");
+                  setSpecialtyFilter("ALL");
+                  setPriorityFilter("ALL");
+                }}
+              >
+                Limpiar filtros
+              </Button>
             </div>
           </div>
 
@@ -78,13 +149,14 @@ function AdminPrioritiesPage() {
             <div className="p-5">
               <LoadingPanel />
             </div>
-          ) : rows.length ? (
+          ) : filteredRows.length ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm">
+              <table className="w-full min-w-[1180px] text-sm">
                 <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3">Posicion</th>
                     <th className="px-4 py-3">Nombre</th>
+                    <th className="px-4 py-3">Especialidad</th>
                     <th className="px-4 py-3">Edad</th>
                     <th className="px-4 py-3">Enfermedad</th>
                     <th className="px-4 py-3">Cronica</th>
@@ -96,10 +168,11 @@ function AdminPrioritiesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {filteredRows.map((row) => (
                     <tr key={row.patientId} className="border-t">
                       <td className="px-4 py-3 text-lg font-black text-primary">{row.position}</td>
                       <td className="px-4 py-3 font-semibold">{row.patientName}</td>
+                      <td className="px-4 py-3">{row.specialty ?? "-"}</td>
                       <td className="px-4 py-3">{row.age ?? "-"}</td>
                       <td className="px-4 py-3">{row.disease ?? "-"}</td>
                       <td className="px-4 py-3">{row.chronicCondition ? "Si" : "No"}</td>
@@ -132,8 +205,12 @@ function AdminPrioritiesPage() {
           ) : (
             <div className="p-5">
               <EmptyPanel
-                title="Sin pacientes"
-                body="Cuando existan pacientes registrados, apareceran en esta tabla."
+                title={hasFilters ? "No se encontraron resultados" : "Sin pacientes"}
+                body={
+                  hasFilters
+                    ? "Ajusta la busqueda o limpia los filtros para ver mas registros."
+                    : "Cuando existan pacientes registrados, apareceran en esta tabla."
+                }
               />
             </div>
           )}
@@ -240,4 +317,13 @@ function PriorityForm({
 function formatDate(value: string) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("es-PE", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
 }

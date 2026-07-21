@@ -8,7 +8,6 @@ import { EmptyPanel, ErrorPanel, LoadingPanel } from "@/components/data-states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFacilities, getSpecialties } from "@/lib/api/catalogs";
 import {
@@ -16,10 +15,11 @@ import {
   createPatientRequest,
   getPatientAppointments,
   getPatientOffers,
+  getPatientProfile,
   getPatientRequests,
   rejectOffer,
 } from "@/lib/api/patients";
-import type { AppointmentRequestCreate, SlotOffer } from "@/lib/api/types";
+import type { AppointmentRequestCreate, PatientProfile, SlotOffer } from "@/lib/api/types";
 
 export const Route = createFileRoute("/_authenticated/patient/dashboard")({
   component: PatientDashboard,
@@ -33,6 +33,7 @@ function PatientDashboard() {
     queryFn: getPatientAppointments,
   });
   const offers = useQuery({ queryKey: ["patient", "offers"], queryFn: getPatientOffers });
+  const profile = useQuery({ queryKey: ["patient", "profile"], queryFn: getPatientProfile });
   const specialties = useQuery({ queryKey: ["catalog", "specialties"], queryFn: getSpecialties });
   const facilities = useQuery({ queryKey: ["catalog", "facilities"], queryFn: getFacilities });
 
@@ -47,7 +48,8 @@ function PatientDashboard() {
       toast.success("Solicitud registrada");
       queryClient.invalidateQueries({ queryKey: ["patient"] });
     },
-    onError: () => toast.error("No pudimos registrar la solicitud."),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "No pudimos registrar la solicitud."),
   });
 
   const acceptMutation = useMutation({
@@ -107,12 +109,12 @@ function PatientDashboard() {
         </div>
       </Card>
 
-      {requests.isError || offers.isError || appointments.isError ? (
+      {requests.isError || offers.isError || appointments.isError || profile.isError ? (
         <ErrorPanel
-          error={requests.error ?? offers.error ?? appointments.error}
+          error={requests.error ?? offers.error ?? appointments.error ?? profile.error}
           retry={() => queryClient.invalidateQueries({ queryKey: ["patient"] })}
         />
-      ) : requests.isLoading || offers.isLoading || appointments.isLoading ? (
+      ) : requests.isLoading || offers.isLoading || appointments.isLoading || profile.isLoading ? (
         <LoadingPanel />
       ) : (
         <section className="grid gap-6 xl:grid-cols-[.9fr_1.1fr]">
@@ -125,6 +127,7 @@ function PatientDashboard() {
             {/* Formulario que alimenta la lista de espera y dispara el calculo de prioridad. */}
             <RequestForm
               disabled={createRequestMutation.isPending}
+              profile={profile.data ?? null}
               specialties={specialties.data ?? []}
               facilities={facilities.data ?? []}
               onSubmit={(body) => createRequestMutation.mutate(body)}
@@ -183,20 +186,19 @@ function PatientDashboard() {
 function RequestForm({
   specialties,
   facilities,
+  profile,
   disabled,
   onSubmit,
 }: {
   specialties: { id: number; name: string }[];
   facilities: { id: number; name: string }[];
+  profile: PatientProfile | null;
   disabled: boolean;
   onSubmit: (body: AppointmentRequestCreate) => void;
 }) {
   const [specialtyId, setSpecialtyId] = useState("");
   const [facilityId, setFacilityId] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [disease, setDisease] = useState("");
-  const [chronicCondition, setChronicCondition] = useState(false);
-  const [vulnerabilityCondition, setVulnerabilityCondition] = useState(false);
+  const isProfileComplete = Boolean(profile?.birthDate && profile?.disease?.trim());
 
   return (
     <form
@@ -207,13 +209,21 @@ function RequestForm({
         onSubmit({
           specialtyId: Number(specialtyId),
           preferredFacilityId: facilityId ? Number(facilityId) : undefined,
-          birthDate: birthDate || undefined,
-          disease: disease || undefined,
-          chronicCondition,
-          vulnerabilityCondition,
         });
       }}
     >
+      {!isProfileComplete && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Completa tus datos medicos</p>
+          <p className="mt-1 leading-6">
+            Antes de solicitar una cita, registra tu fecha de nacimiento y enfermedad principal en
+            la seccion Mi perfil.
+          </p>
+          <Button asChild variant="outline" size="sm" className="mt-3 bg-white">
+            <Link to="/patient/profile">Ir a Mi perfil</Link>
+          </Button>
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="specialty">Especialidad</Label>
         <select
@@ -247,45 +257,9 @@ function RequestForm({
           ))}
         </select>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="birth-date">Fecha de nacimiento</Label>
-        <Input
-          id="birth-date"
-          type="date"
-          value={birthDate}
-          onChange={(event) => setBirthDate(event.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="disease">Enfermedad principal</Label>
-        <Input
-          id="disease"
-          required
-          value={disease}
-          onChange={(event) => setDisease(event.target.value)}
-        />
-      </div>
-      <label className="flex items-start gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={chronicCondition}
-          onChange={(event) => setChronicCondition(event.target.checked)}
-        />
-        <span>Declaro que existe una condicion cronica registrada.</span>
-      </label>
-      <label className="flex items-start gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={vulnerabilityCondition}
-          onChange={(event) => setVulnerabilityCondition(event.target.checked)}
-        />
-        <span>Declaro una condicion de vulnerabilidad.</span>
-      </label>
       <Button
         type="submit"
-        disabled={disabled || !specialtyId || !disease}
+        disabled={disabled || !specialtyId || !isProfileComplete}
         className="w-full gap-2"
       >
         <Send className="size-4" />

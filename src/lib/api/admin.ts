@@ -352,7 +352,39 @@ export async function getAdminPriorityBoard(): Promise<PageResponse<AdminPriorit
   await requireRole(["ADMIN"]);
   const { data, error } = await supabase.rpc("get_patient_priority_board");
   if (error) throw error;
-  return pageResponse((data ?? []).map(mapAdminPriorityRow), 100);
+
+  const rows = (data ?? []).map(mapAdminPriorityRow);
+  const patientIds = rows.map((row) => row.patientId);
+  if (!patientIds.length) return pageResponse(rows, 100);
+
+  const { data: waitingRows, error: waitingError } = await supabase
+    .from("waiting_list_entries")
+    .select("patient_id, waiting_since, specialty:specialties(name)")
+    .in("patient_id", patientIds)
+    .order("waiting_since", { ascending: false });
+  if (waitingError) throw waitingError;
+
+  const specialtyByPatient = new Map<string, string>();
+  for (const waitingRow of (waitingRows ?? []) as Array<{
+    patient_id: string | null;
+    specialty?: { name?: string | null } | null;
+  }>) {
+    if (
+      waitingRow.patient_id &&
+      waitingRow.specialty?.name &&
+      !specialtyByPatient.has(waitingRow.patient_id)
+    ) {
+      specialtyByPatient.set(waitingRow.patient_id, waitingRow.specialty.name);
+    }
+  }
+
+  return pageResponse(
+    rows.map((row) => ({
+      ...row,
+      specialty: specialtyByPatient.get(row.patientId) ?? null,
+    })),
+    100,
+  );
 }
 
 export async function updateAdminPriority(
@@ -458,6 +490,15 @@ export async function setDoctorActive(id: string, active: boolean): Promise<Doct
   return saveAdminDoctor({ id, active });
 }
 
+export async function deleteAdminDoctor(id: string): Promise<void> {
+  await requireRole(["ADMIN"]);
+
+  const { error } = await supabase.from("doctors").update({ active: false }).eq("id", id);
+  if (error) throw error;
+
+  await writeAudit("DOCTOR_DELETED", "doctors", id);
+}
+
 export async function saveSpecialty(body: CatalogInput): Promise<CatalogItem> {
   await requireRole(["ADMIN"]);
   const { address: _address, ...payload } = buildCatalogPayload(body);
@@ -555,6 +596,7 @@ function mapAdminPriorityRow(row: {
   return {
     id: row.id,
     patientId: row.id,
+    specialty: null,
     position: row.position,
     patientName: row.patient_name,
     disease: row.disease,
