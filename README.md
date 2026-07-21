@@ -32,4 +32,3 @@ La aplicacion funciona con Supabase como capa de autenticacion, persistencia y c
 - Frontend: React 19, TypeScript, TanStack Start, TanStack Router, TanStack Query, Tailwind CSS 4.
 - Servicios administrados: Supabase Auth, Supabase Database, Row Level Security.
 - Infraestructura: Docker, Docker Compose, Railway, GitHub Actions.
-

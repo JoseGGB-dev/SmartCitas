@@ -216,7 +216,7 @@ function AdminDoctorsPage() {
                             onClick={() => {
                               if (
                                 window.confirm(
-                                  "Seguro que deseas eliminar este medico del uso operativo? Su historial se conservara.",
+                                  "Seguro que deseas eliminar este medico? Solo se eliminara si no tiene cupos registrados.",
                                 )
                               ) {
                                 remove.mutate(doctor.id);

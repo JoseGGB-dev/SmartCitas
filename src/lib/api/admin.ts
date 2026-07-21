@@ -493,7 +493,23 @@ export async function setDoctorActive(id: string, active: boolean): Promise<Doct
 export async function deleteAdminDoctor(id: string): Promise<void> {
   await requireRole(["ADMIN"]);
 
-  const { error } = await supabase.from("doctors").update({ active: false }).eq("id", id);
+  // Evita borrar medicos con agenda registrada para no romper el historial clinico.
+  const { count, error: slotsError } = await supabase
+    .from("medical_slots")
+    .select("id", { count: "exact", head: true })
+    .eq("doctor_id", id);
+  if (slotsError) throw slotsError;
+  if ((count ?? 0) > 0) {
+    throw new Error("No se puede eliminar un medico con cupos registrados. Puedes desactivarlo.");
+  }
+
+  const { error: specialtiesError } = await supabase
+    .from("doctor_specialties")
+    .delete()
+    .eq("doctor_id", id);
+  if (specialtiesError) throw specialtiesError;
+
+  const { error } = await supabase.from("doctors").delete().eq("id", id);
   if (error) throw error;
 
   await writeAudit("DOCTOR_DELETED", "doctors", id);
