@@ -20,10 +20,19 @@ import {
 import type { MedicalSlotCreate } from "@/lib/api/types";
 
 export const Route = createFileRoute("/_authenticated/operator/dashboard")({
-  component: OperatorDashboard,
+  component: OperatorDashboardRoute,
 });
 
-function OperatorDashboard() {
+function OperatorDashboardRoute() {
+  return (
+    <OperatorDashboard
+      title="Panel operativo"
+      subtitle="Gestiona cupos, lista de espera y reasignacion con prioridad persistida en Supabase."
+    />
+  );
+}
+
+export function OperatorDashboard({ title, subtitle }: { title: string; subtitle: string }) {
   const queryClient = useQueryClient();
   const waitingList = useQuery({ queryKey: ["operator", "waiting-list"], queryFn: getWaitingList });
   const slots = useQuery({ queryKey: ["operator", "slots"], queryFn: getMedicalSlots });
@@ -69,10 +78,7 @@ function OperatorDashboard() {
     waitingList.data?.content.filter((entry) => entry.status === "TEMPORARILY_OFFERED").length ?? 0;
 
   return (
-    <AppShell
-      title="Panel operativo"
-      subtitle="Gestiona cupos, lista de espera y reasignacion con prioridad persistida en Supabase."
-    >
+    <AppShell title={title} subtitle={subtitle}>
       <section className="grid gap-4 md:grid-cols-3">
         <MetricCard icon={UsersRound} label="Pacientes esperando" value={activeWaiting} />
         <MetricCard icon={ClipboardList} label="Ofertas en curso" value={pendingOffers} />

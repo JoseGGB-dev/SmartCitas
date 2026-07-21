@@ -20,6 +20,7 @@ import { Route as AuthenticatedPatientDashboardRouteImport } from './routes/_aut
 import { Route as AuthenticatedOperatorDashboardRouteImport } from './routes/_authenticated/operator/dashboard'
 import { Route as AuthenticatedDoctorDashboardRouteImport } from './routes/_authenticated/doctor/dashboard'
 import { Route as AuthenticatedAuditorDashboardRouteImport } from './routes/_authenticated/auditor/dashboard'
+import { Route as AuthenticatedAdminSlotsRouteImport } from './routes/_authenticated/admin/slots'
 import { Route as AuthenticatedAdminPrioritiesRouteImport } from './routes/_authenticated/admin/priorities'
 import { Route as AuthenticatedAdminPatientsRouteImport } from './routes/_authenticated/admin/patients'
 import { Route as AuthenticatedAdminDoctorsRouteImport } from './routes/_authenticated/admin/doctors'
@@ -86,6 +87,11 @@ const AuthenticatedAuditorDashboardRoute =
     path: '/auditor/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSlotsRoute = AuthenticatedAdminSlotsRouteImport.update({
+  id: '/admin/slots',
+  path: '/admin/slots',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminPrioritiesRoute =
   AuthenticatedAdminPrioritiesRouteImport.update({
     id: '/admin/priorities',
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/admin/doctors': typeof AuthenticatedAdminDoctorsRoute
   '/admin/patients': typeof AuthenticatedAdminPatientsRoute
   '/admin/priorities': typeof AuthenticatedAdminPrioritiesRoute
+  '/admin/slots': typeof AuthenticatedAdminSlotsRoute
   '/auditor/dashboard': typeof AuthenticatedAuditorDashboardRoute
   '/doctor/dashboard': typeof AuthenticatedDoctorDashboardRoute
   '/operator/dashboard': typeof AuthenticatedOperatorDashboardRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/admin/doctors': typeof AuthenticatedAdminDoctorsRoute
   '/admin/patients': typeof AuthenticatedAdminPatientsRoute
   '/admin/priorities': typeof AuthenticatedAdminPrioritiesRoute
+  '/admin/slots': typeof AuthenticatedAdminSlotsRoute
   '/auditor/dashboard': typeof AuthenticatedAuditorDashboardRoute
   '/doctor/dashboard': typeof AuthenticatedDoctorDashboardRoute
   '/operator/dashboard': typeof AuthenticatedOperatorDashboardRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/doctors': typeof AuthenticatedAdminDoctorsRoute
   '/_authenticated/admin/patients': typeof AuthenticatedAdminPatientsRoute
   '/_authenticated/admin/priorities': typeof AuthenticatedAdminPrioritiesRoute
+  '/_authenticated/admin/slots': typeof AuthenticatedAdminSlotsRoute
   '/_authenticated/auditor/dashboard': typeof AuthenticatedAuditorDashboardRoute
   '/_authenticated/doctor/dashboard': typeof AuthenticatedDoctorDashboardRoute
   '/_authenticated/operator/dashboard': typeof AuthenticatedOperatorDashboardRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/admin/doctors'
     | '/admin/patients'
     | '/admin/priorities'
+    | '/admin/slots'
     | '/auditor/dashboard'
     | '/doctor/dashboard'
     | '/operator/dashboard'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/admin/doctors'
     | '/admin/patients'
     | '/admin/priorities'
+    | '/admin/slots'
     | '/auditor/dashboard'
     | '/doctor/dashboard'
     | '/operator/dashboard'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/doctors'
     | '/_authenticated/admin/patients'
     | '/_authenticated/admin/priorities'
+    | '/_authenticated/admin/slots'
     | '/_authenticated/auditor/dashboard'
     | '/_authenticated/doctor/dashboard'
     | '/_authenticated/operator/dashboard'
@@ -311,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditorDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/slots': {
+      id: '/_authenticated/admin/slots'
+      path: '/admin/slots'
+      fullPath: '/admin/slots'
+      preLoaderRoute: typeof AuthenticatedAdminSlotsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/priorities': {
       id: '/_authenticated/admin/priorities'
       path: '/admin/priorities'
@@ -356,6 +375,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminDoctorsRoute: typeof AuthenticatedAdminDoctorsRoute
   AuthenticatedAdminPatientsRoute: typeof AuthenticatedAdminPatientsRoute
   AuthenticatedAdminPrioritiesRoute: typeof AuthenticatedAdminPrioritiesRoute
+  AuthenticatedAdminSlotsRoute: typeof AuthenticatedAdminSlotsRoute
   AuthenticatedAuditorDashboardRoute: typeof AuthenticatedAuditorDashboardRoute
   AuthenticatedDoctorDashboardRoute: typeof AuthenticatedDoctorDashboardRoute
   AuthenticatedOperatorDashboardRoute: typeof AuthenticatedOperatorDashboardRoute
@@ -371,6 +391,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminDoctorsRoute: AuthenticatedAdminDoctorsRoute,
   AuthenticatedAdminPatientsRoute: AuthenticatedAdminPatientsRoute,
   AuthenticatedAdminPrioritiesRoute: AuthenticatedAdminPrioritiesRoute,
+  AuthenticatedAdminSlotsRoute: AuthenticatedAdminSlotsRoute,
   AuthenticatedAuditorDashboardRoute: AuthenticatedAuditorDashboardRoute,
   AuthenticatedDoctorDashboardRoute: AuthenticatedDoctorDashboardRoute,
   AuthenticatedOperatorDashboardRoute: AuthenticatedOperatorDashboardRoute,

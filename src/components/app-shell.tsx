@@ -30,6 +30,7 @@ type DashboardPath =
   | "/admin/patients"
   | "/admin/priorities"
   | "/admin/doctors"
+  | "/admin/slots"
   | "/admin/catalogs";
 
 const ROLE_NAV: Record<
@@ -49,6 +50,7 @@ const ROLE_NAV: Record<
     { to: "/admin/patients", label: "Pacientes", icon: UsersRound },
     { to: "/admin/priorities", label: "Prioridades", icon: ClipboardList },
     { to: "/admin/doctors", label: "Medicos", icon: Stethoscope },
+    { to: "/admin/slots", label: "Cupos", icon: CalendarClock },
     { to: "/admin/catalogs", label: "Catalogos", icon: ClipboardList },
   ],
 };
