@@ -197,6 +197,11 @@ export type MedicalSlotCreate = {
   capacity: number;
 };
 
+export type MedicalSlotCreateResult = {
+  slot: MedicalSlot;
+  offer: SlotOffer | null;
+};
+
 export type SlotOffer = {
   id: string;
   medicalSlotId: string;
@@ -240,6 +245,7 @@ export type Statistics = {
   medicalSlots: number;
   pendingOffers: number;
   confirmedAppointments: number;
+  completedAppointments: number;
   pendingAppointments: number;
   priorityDistribution: {
     high: number;

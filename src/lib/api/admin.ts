@@ -213,6 +213,7 @@ export async function getStatistics(): Promise<Statistics> {
     medicalSlots,
     pendingOffers,
     confirmedAppointments,
+    completedAppointments,
     pendingAppointments,
     evaluations,
   ] = await Promise.all([
@@ -232,6 +233,10 @@ export async function getStatistics(): Promise<Statistics> {
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })
+      .eq("status", "COMPLETED"),
+    supabase
+      .from("appointments")
+      .select("id", { count: "exact", head: true })
       .in("status", ["PENDING_CONFIRMATION", "CONFIRMED"]),
     supabase.from("priority_evaluations").select("total_score"),
   ]);
@@ -244,6 +249,7 @@ export async function getStatistics(): Promise<Statistics> {
     medicalSlots.error ??
     pendingOffers.error ??
     confirmedAppointments.error ??
+    completedAppointments.error ??
     pendingAppointments.error ??
     evaluations.error;
   if (error) throw error;
@@ -267,6 +273,7 @@ export async function getStatistics(): Promise<Statistics> {
     medicalSlots: medicalSlots.count ?? 0,
     pendingOffers: pendingOffers.count ?? 0,
     confirmedAppointments: confirmedAppointments.count ?? 0,
+    completedAppointments: completedAppointments.count ?? 0,
     pendingAppointments: pendingAppointments.count ?? 0,
     priorityDistribution,
   };

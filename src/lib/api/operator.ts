@@ -15,6 +15,7 @@ import type {
   Appointment,
   MedicalSlot,
   MedicalSlotCreate,
+  MedicalSlotCreateResult,
   PageResponse,
   SlotOffer,
   WaitingListEntry,
@@ -108,7 +109,7 @@ export async function getMedicalSlots(): Promise<PageResponse<MedicalSlot>> {
   return pageResponse(((data ?? []) as unknown as JoinedRow[]).map(mapMedicalSlot), PAGE_30.size);
 }
 
-export async function createMedicalSlot(body: MedicalSlotCreate): Promise<MedicalSlot> {
+export async function createMedicalSlot(body: MedicalSlotCreate): Promise<MedicalSlotCreateResult> {
   await requireRole(["OPERATOR", "ADMIN"]);
   const { data, error } = await supabase
     .from("medical_slots")
@@ -126,7 +127,13 @@ export async function createMedicalSlot(body: MedicalSlotCreate): Promise<Medica
     .single();
   if (error) throw error;
   await writeAudit("MEDICAL_SLOT_CREATED", "medical_slots", data.id, data);
-  return mapMedicalSlot(data as unknown as JoinedRow);
+
+  // Al crear disponibilidad se ofrece automaticamente al paciente elegible con mayor prioridad.
+  const offer = await assignNextPatient(data.id);
+  return {
+    slot: mapMedicalSlot(data as unknown as JoinedRow),
+    offer,
+  };
 }
 
 export async function releaseMedicalSlot(id: string): Promise<MedicalSlot> {

@@ -46,7 +46,7 @@ function AdminDashboard() {
         <MetricCard
           icon={ShieldCheck}
           label="Realizadas"
-          value={statistics.data?.confirmedAppointments ?? 0}
+          value={statistics.data?.completedAppointments ?? 0}
         />
         <MetricCard
           icon={BarChart3}

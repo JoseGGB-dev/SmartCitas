@@ -32,8 +32,12 @@ function OperatorDashboard() {
 
   const createSlot = useMutation({
     mutationFn: createMedicalSlot,
-    onSuccess: () => {
-      toast.success("Cupo registrado");
+    onSuccess: (result) => {
+      toast.success(
+        result.offer
+          ? `Cupo registrado y oferta creada para ${result.offer.patientName}`
+          : "Cupo registrado. No hay pacientes elegibles por ahora.",
+      );
       queryClient.invalidateQueries({ queryKey: ["operator"] });
     },
     onError: () => toast.error("No pudimos registrar el cupo."),
@@ -91,7 +95,8 @@ function OperatorDashboard() {
           <Card className="p-5">
             <h2 className="font-bold">Registrar cupo</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Crea disponibilidad operativa. Luego puedes ejecutar la reasignacion transparente.
+              Crea disponibilidad operativa. El sistema ofrecera el cupo al paciente elegible con
+              mayor prioridad.
             </p>
             <SlotForm
               disabled={createSlot.isPending}
@@ -106,7 +111,7 @@ function OperatorDashboard() {
               <div className="border-b p-5">
                 <h2 className="font-bold">Cupos medicos</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Libera o asigna el siguiente paciente elegible.
+                  Libera cupos o reintenta la asignacion para cupos disponibles.
                 </p>
               </div>
               {slots.data?.content.length ? (
