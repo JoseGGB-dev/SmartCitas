@@ -161,8 +161,40 @@ export async function releaseMedicalSlot(id: string): Promise<MedicalSlot> {
   return mapMedicalSlot(data as unknown as JoinedRow);
 }
 
+export async function deleteMedicalSlot(id: string): Promise<void> {
+  await requireRole(["OPERATOR", "ADMIN"]);
+  const [appointments, offers] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("id", { count: "exact", head: true })
+      .eq("medical_slot_id", id),
+    supabase
+      .from("slot_offers")
+      .select("id", { count: "exact", head: true })
+      .eq("medical_slot_id", id),
+  ]);
+  const error = appointments.error ?? offers.error;
+  if (error) throw error;
+  if ((appointments.count ?? 0) > 0 || (offers.count ?? 0) > 0) {
+    throw new Error("No se puede eliminar un cupo con citas u ofertas asociadas.");
+  }
+
+  const { error: deleteError } = await supabase.from("medical_slots").delete().eq("id", id);
+  if (deleteError) throw deleteError;
+  await writeAudit("MEDICAL_SLOT_DELETED", "medical_slots", id);
+}
+
 export async function assignNextPatient(id: string): Promise<SlotOffer | null> {
   await requireRole(["OPERATOR", "ADMIN"]);
+  const { data: pendingOffer, error: pendingOfferError } = await supabase
+    .from("slot_offers")
+    .select(OFFER_SELECT)
+    .eq("medical_slot_id", id)
+    .eq("status", "PENDING")
+    .maybeSingle();
+  if (pendingOfferError) throw pendingOfferError;
+  if (pendingOffer) return mapSlotOffer(pendingOffer as unknown as JoinedRow);
+
   const { data: slot, error: slotError } = await supabase
     .from("medical_slots")
     .select("id, specialty_id, available_capacity")

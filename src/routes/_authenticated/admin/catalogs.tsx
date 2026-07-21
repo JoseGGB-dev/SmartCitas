@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, ListPlus } from "lucide-react";
+import { Building2, ListPlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { saveFacility, saveSpecialty } from "@/lib/api/admin";
+import { deleteFacility, deleteSpecialty, saveFacility, saveSpecialty } from "@/lib/api/admin";
 import { getFacilities, getSpecialties } from "@/lib/api/catalogs";
 import type { CatalogInput, CatalogItem } from "@/lib/api/types";
 
@@ -48,6 +48,30 @@ function AdminCatalogsPage() {
     },
   });
 
+  const deleteSpecialtyMutation = useMutation({
+    mutationFn: deleteSpecialty,
+    onSuccess: () => {
+      toast.success("Especialidad eliminada");
+      setSpecialty(null);
+      queryClient.invalidateQueries({ queryKey: ["catalog", "specialties"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar la especialidad.");
+    },
+  });
+
+  const deleteFacilityMutation = useMutation({
+    mutationFn: deleteFacility,
+    onSuccess: () => {
+      toast.success("Sede eliminada");
+      setFacility(null);
+      queryClient.invalidateQueries({ queryKey: ["catalog", "facilities"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar la sede.");
+    },
+  });
+
   return (
     <AppShell
       title="Gestion de catalogos"
@@ -62,8 +86,9 @@ function AdminCatalogsPage() {
           error={specialties.error}
           selected={specialty}
           onSelect={setSpecialty}
+          onDelete={(id) => deleteSpecialtyMutation.mutate(id)}
           onSubmit={(body) => saveSpecialtyMutation.mutate(body)}
-          saving={saveSpecialtyMutation.isPending}
+          saving={saveSpecialtyMutation.isPending || deleteSpecialtyMutation.isPending}
         />
         <CatalogSection
           icon="facility"
@@ -73,8 +98,9 @@ function AdminCatalogsPage() {
           error={facilities.error}
           selected={facility}
           onSelect={setFacility}
+          onDelete={(id) => deleteFacilityMutation.mutate(id)}
           onSubmit={(body) => saveFacilityMutation.mutate(body)}
-          saving={saveFacilityMutation.isPending}
+          saving={saveFacilityMutation.isPending || deleteFacilityMutation.isPending}
           withAddress
         />
       </section>
@@ -92,6 +118,7 @@ function CatalogSection({
   saving,
   withAddress = false,
   onSelect,
+  onDelete,
   onSubmit,
 }: {
   icon: "specialty" | "facility";
@@ -103,6 +130,7 @@ function CatalogSection({
   saving: boolean;
   withAddress?: boolean;
   onSelect: (item: CatalogItem | null) => void;
+  onDelete: (id: number) => void;
   onSubmit: (body: CatalogInput) => void;
 }) {
   return (
@@ -134,9 +162,25 @@ function CatalogSection({
                   {item.address ? ` / ${item.address}` : ""}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => onSelect(item)}>
-                Editar
-              </Button>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => onSelect(item)}>
+                  Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => {
+                    if (window.confirm(`Seguro que deseas eliminar ${item.name}?`)) {
+                      onDelete(item.id);
+                    }
+                  }}
+                  className="gap-2 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                  Eliminar
+                </Button>
+              </div>
             </div>
           ))}
         </div>

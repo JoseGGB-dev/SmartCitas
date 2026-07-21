@@ -192,6 +192,25 @@ export async function getAdminUsers(): Promise<PageResponse<UserSummary>> {
   );
 }
 
+export async function deleteAdminUser(id: string): Promise<void> {
+  await requireRole(["ADMIN"]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id === id) throw new Error("No puedes eliminar tu propio usuario.");
+
+  // La aplicacion elimina el perfil operativo; la cuenta Auth se administra desde Supabase.
+  await supabase.from("patients").delete().eq("profile_id", id);
+  await supabase.from("doctors").update({ profile_id: null }).eq("profile_id", id);
+  const { error: rolesError } = await supabase.from("user_roles").delete().eq("user_id", id);
+  if (rolesError) throw rolesError;
+
+  const { error } = await supabase.from("profiles").delete().eq("id", id);
+  if (error) throw error;
+
+  await writeAudit("USER_DELETED", "profiles", id);
+}
+
 export async function getAdminAuditLogs(): Promise<PageResponse<AuditLog>> {
   await requireRole(["ADMIN"]);
   const { data, error } = await supabase
@@ -353,6 +372,16 @@ export async function updateAdminPatient(
   if (error) throw error;
   await writeAudit("PATIENT_UPDATED", "patients", id, data);
   return mapPatientProfile(data as unknown as JoinedRow);
+}
+
+export async function deleteAdminPatient(id: string): Promise<void> {
+  await requireRole(["ADMIN"]);
+
+  // Patients tiene cascadas hacia solicitudes, lista de espera, ofertas y citas.
+  const { error } = await supabase.from("patients").delete().eq("id", id);
+  if (error) throw error;
+
+  await writeAudit("PATIENT_DELETED", "patients", id);
 }
 
 export async function getAdminPriorityBoard(): Promise<PageResponse<AdminPriorityRow>> {
@@ -542,6 +571,42 @@ export async function saveSpecialty(body: CatalogInput): Promise<CatalogItem> {
   return data as CatalogItem;
 }
 
+export async function deleteSpecialty(id: number): Promise<void> {
+  await requireRole(["ADMIN"]);
+  const [doctorLinks, slots, requests, waitingEntries] = await Promise.all([
+    supabase
+      .from("doctor_specialties")
+      .select("doctor_id", { count: "exact", head: true })
+      .eq("specialty_id", id),
+    supabase
+      .from("medical_slots")
+      .select("id", { count: "exact", head: true })
+      .eq("specialty_id", id),
+    supabase
+      .from("appointment_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("specialty_id", id),
+    supabase
+      .from("waiting_list_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("specialty_id", id),
+  ]);
+  const error = doctorLinks.error ?? slots.error ?? requests.error ?? waitingEntries.error;
+  if (error) throw error;
+  if (
+    (doctorLinks.count ?? 0) > 0 ||
+    (slots.count ?? 0) > 0 ||
+    (requests.count ?? 0) > 0 ||
+    (waitingEntries.count ?? 0) > 0
+  ) {
+    throw new Error("No se puede eliminar una especialidad con registros asociados.");
+  }
+
+  const { error: deleteError } = await supabase.from("specialties").delete().eq("id", id);
+  if (deleteError) throw deleteError;
+  await writeAudit("SPECIALTY_DELETED", "specialties", String(id));
+}
+
 export async function saveFacility(body: CatalogInput): Promise<CatalogItem> {
   await requireRole(["ADMIN"]);
   const payload = buildCatalogPayload(body);
@@ -560,6 +625,30 @@ export async function saveFacility(body: CatalogInput): Promise<CatalogItem> {
     data,
   );
   return data as CatalogItem;
+}
+
+export async function deleteFacility(id: number): Promise<void> {
+  await requireRole(["ADMIN"]);
+  const [doctors, slots, requests] = await Promise.all([
+    supabase.from("doctors").select("id", { count: "exact", head: true }).eq("facility_id", id),
+    supabase
+      .from("medical_slots")
+      .select("id", { count: "exact", head: true })
+      .eq("facility_id", id),
+    supabase
+      .from("appointment_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("preferred_facility_id", id),
+  ]);
+  const error = doctors.error ?? slots.error ?? requests.error;
+  if (error) throw error;
+  if ((doctors.count ?? 0) > 0 || (slots.count ?? 0) > 0 || (requests.count ?? 0) > 0) {
+    throw new Error("No se puede eliminar una sede con registros asociados.");
+  }
+
+  const { error: deleteError } = await supabase.from("facilities").delete().eq("id", id);
+  if (deleteError) throw deleteError;
+  await writeAudit("FACILITY_DELETED", "facilities", String(id));
 }
 
 function mapPatientProfile(row: JoinedRow): PatientProfile {

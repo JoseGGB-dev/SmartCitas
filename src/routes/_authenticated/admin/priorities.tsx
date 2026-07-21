@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, RefreshCcw, Save, Search } from "lucide-react";
+import { ClipboardList, RefreshCcw, Save, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  deleteAdminPatient,
   getAdminPriorityBoard,
   recalculateAdminPriority,
   updateAdminPriority,
@@ -52,6 +53,19 @@ function AdminPrioritiesPage() {
       queryClient.invalidateQueries({ queryKey: ["patient", "priority"] });
     },
     onError: () => toast.error("No pudimos recalcular la prioridad."),
+  });
+
+  const remove = useMutation({
+    mutationFn: deleteAdminPatient,
+    onSuccess: () => {
+      toast.success("Paciente eliminado");
+      setSelected(null);
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      queryClient.invalidateQueries({ queryKey: ["patient", "priority"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar el paciente.");
+    },
   });
 
   const rows = useMemo(() => priorities.data?.content ?? [], [priorities.data]);
@@ -190,10 +204,26 @@ function AdminPrioritiesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={recalculate.isPending}
+                            disabled={recalculate.isPending || remove.isPending}
                             onClick={() => recalculate.mutate(row.patientId)}
                           >
                             <RefreshCcw className="size-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={recalculate.isPending || remove.isPending}
+                            onClick={() => {
+                              if (
+                                window.confirm(`Seguro que deseas eliminar a ${row.patientName}?`)
+                              ) {
+                                remove.mutate(row.patientId);
+                              }
+                            }}
+                            className="gap-2 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                            Eliminar
                           </Button>
                         </div>
                       </td>

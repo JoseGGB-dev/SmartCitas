@@ -1,18 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   CalendarClock,
   ClipboardList,
   ShieldCheck,
   Stethoscope,
+  Trash2,
   UsersRound,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { EmptyPanel, ErrorPanel, LoadingPanel } from "@/components/data-states";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getAdminAuditLogs, getAdminUsers, getStatistics } from "@/lib/api/admin";
+import { deleteAdminUser, getAdminAuditLogs, getAdminUsers, getStatistics } from "@/lib/api/admin";
 import { auditActionLabel, auditEntityLabel } from "@/lib/audit-labels";
 
 export const Route = createFileRoute("/_authenticated/admin/dashboard")({
@@ -24,6 +27,16 @@ function AdminDashboard() {
   const users = useQuery({ queryKey: ["admin", "users"], queryFn: getAdminUsers });
   const audit = useQuery({ queryKey: ["admin", "audit"], queryFn: getAdminAuditLogs });
   const statistics = useQuery({ queryKey: ["admin", "statistics"], queryFn: getStatistics });
+  const removeUser = useMutation({
+    mutationFn: deleteAdminUser,
+    onSuccess: () => {
+      toast.success("Usuario eliminado");
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar el usuario.");
+    },
+  });
 
   return (
     <AppShell
@@ -76,7 +89,7 @@ function AdminDashboard() {
                 {users.data.content.map((user) => (
                   <div
                     key={user.id}
-                    className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center"
+                    className="grid gap-3 p-4 xl:grid-cols-[1fr_auto] xl:items-center"
                   >
                     <div>
                       <p className="font-semibold">{user.email}</p>
@@ -84,12 +97,28 @@ function AdminDashboard() {
                         {[user.firstName, user.lastName].filter(Boolean).join(" ") || "Sin nombre"}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {user.roles.map((role) => (
-                        <Badge key={role} variant="outline">
-                          {role}
-                        </Badge>
-                      ))}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {user.roles.map((role) => (
+                          <Badge key={role} variant="outline">
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={removeUser.isPending}
+                        onClick={() => {
+                          if (window.confirm(`Seguro que deseas eliminar ${user.email}?`)) {
+                            removeUser.mutate(user.id);
+                          }
+                        }}
+                        className="gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                        Eliminar
+                      </Button>
                     </div>
                   </div>
                 ))}

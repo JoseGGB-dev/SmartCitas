@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { CalendarPlus, ClipboardList, Play, RefreshCcw, UsersRound } from "lucide-react";
+import { CalendarPlus, ClipboardList, Play, RefreshCcw, Trash2, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { EmptyPanel, ErrorPanel, LoadingPanel } from "@/components/data-states";
@@ -13,6 +13,7 @@ import { getFacilities, getSpecialties } from "@/lib/api/catalogs";
 import {
   assignNextPatient,
   createMedicalSlot,
+  deleteMedicalSlot,
   getMedicalSlots,
   getWaitingList,
   releaseMedicalSlot,
@@ -56,7 +57,9 @@ export function OperatorDashboard({ title, subtitle }: { title: string; subtitle
     mutationFn: assignNextPatient,
     onSuccess: (offer) => {
       toast.success(
-        offer ? `Oferta creada para ${offer.patientName}` : "No hay pacientes elegibles.",
+        offer
+          ? `Oferta pendiente para ${offer.patientName}`
+          : "No hay pacientes elegibles para este cupo.",
       );
       queryClient.invalidateQueries({ queryKey: ["operator"] });
     },
@@ -70,6 +73,17 @@ export function OperatorDashboard({ title, subtitle }: { title: string; subtitle
       queryClient.invalidateQueries({ queryKey: ["operator"] });
     },
     onError: () => toast.error("No pudimos liberar el cupo."),
+  });
+
+  const deleteSlot = useMutation({
+    mutationFn: deleteMedicalSlot,
+    onSuccess: () => {
+      toast.success("Cupo eliminado");
+      queryClient.invalidateQueries({ queryKey: ["operator"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar el cupo.");
+    },
   });
 
   const activeWaiting =
@@ -142,6 +156,7 @@ export function OperatorDashboard({ title, subtitle }: { title: string; subtitle
                           variant="outline"
                           size="sm"
                           onClick={() => releaseSlot.mutate(slot.id)}
+                          disabled={deleteSlot.isPending}
                           className="gap-2"
                         >
                           <RefreshCcw className="size-4" />
@@ -150,10 +165,25 @@ export function OperatorDashboard({ title, subtitle }: { title: string; subtitle
                         <Button
                           size="sm"
                           onClick={() => assignNext.mutate(slot.id)}
+                          disabled={deleteSlot.isPending}
                           className="gap-2"
                         >
                           <Play className="size-4" />
                           Asignar siguiente
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={deleteSlot.isPending}
+                          onClick={() => {
+                            if (window.confirm("Seguro que deseas eliminar este cupo?")) {
+                              deleteSlot.mutate(slot.id);
+                            }
+                          }}
+                          className="gap-2 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                          Eliminar
                         </Button>
                       </div>
                     </div>

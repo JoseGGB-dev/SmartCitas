@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, UserPlus } from "lucide-react";
+import { Search, Trash2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -10,7 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createAdminPatient, getAdminPatients, updateAdminPatient } from "@/lib/api/admin";
+import {
+  createAdminPatient,
+  deleteAdminPatient,
+  getAdminPatients,
+  updateAdminPatient,
+} from "@/lib/api/admin";
 import type { PatientProfile, PatientProfileInput } from "@/lib/api/types";
 
 export const Route = createFileRoute("/_authenticated/admin/patients")({
@@ -51,6 +56,18 @@ function AdminPatientsPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "patients"] });
     },
     onError: () => toast.error("No pudimos guardar el paciente."),
+  });
+
+  const remove = useMutation({
+    mutationFn: deleteAdminPatient,
+    onSuccess: () => {
+      toast.success("Paciente eliminado");
+      setSelected(null);
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "No pudimos eliminar el paciente.");
+    },
   });
 
   const rows = patients.data?.content ?? [];
@@ -115,9 +132,25 @@ function AdminPatientsPage() {
                         <Badge variant="outline">{patient.active ? "Activo" : "Inactivo"}</Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button variant="outline" size="sm" onClick={() => setSelected(patient)}>
-                          Editar
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setSelected(patient)}>
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={remove.isPending}
+                            onClick={() => {
+                              if (window.confirm("Seguro que deseas eliminar este paciente?")) {
+                                remove.mutate(patient.id);
+                              }
+                            }}
+                            className="gap-2 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                            Eliminar
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
